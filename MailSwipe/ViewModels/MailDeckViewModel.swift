@@ -6,7 +6,9 @@ final class MailDeckViewModel: ObservableObject {
     @Published private(set) var messages: [MailMessage] = []
     @Published private(set) var currentIndex = 0
     @Published private(set) var isLoading = false
+    @Published private(set) var isLoadingCurrentMessage = false
     @Published var errorMessage: String?
+    @Published var attachmentPreview: AttachmentPreview?
 
     private let service: MailService
     private let reviewedStore: ReviewedMailStoring
@@ -46,6 +48,7 @@ final class MailDeckViewModel: ObservableObject {
             )
             currentIndex = 0
             decisions = []
+            await loadCurrentMessageContentIfNeeded()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -71,6 +74,7 @@ final class MailDeckViewModel: ObservableObject {
             }
 
             currentIndex += 1
+            await loadCurrentMessageContentIfNeeded()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -105,12 +109,40 @@ final class MailDeckViewModel: ObservableObject {
         guard let message = currentMessage else { return }
 
         do {
-            _ = try await service.localURLForAttachment(
+            let url = try await service.localURLForAttachment(
                 messageID: message.id,
                 attachmentID: attachment.id
             )
+            attachmentPreview = AttachmentPreview(url: url)
         } catch {
             errorMessage = error.localizedDescription
         }
     }
+
+    private func loadCurrentMessageContentIfNeeded() async {
+        guard let message = currentMessage, !message.isContentLoaded else { return }
+        let loadingID = message.id
+        isLoadingCurrentMessage = true
+
+        do {
+            let content = try await service.loadContent(messageID: loadingID)
+            guard messages.indices.contains(currentIndex), messages[currentIndex].id == loadingID else {
+                isLoadingCurrentMessage = false
+                return
+            }
+            messages[currentIndex].plainBody = content.plainBody
+            messages[currentIndex].htmlBody = content.htmlBody
+            messages[currentIndex].attachments = content.attachments
+            messages[currentIndex].isContentLoaded = true
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoadingCurrentMessage = false
+    }
+}
+
+struct AttachmentPreview: Identifiable {
+    let id = UUID()
+    let url: URL
 }

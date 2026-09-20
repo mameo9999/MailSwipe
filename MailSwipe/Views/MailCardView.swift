@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MailCardView: View {
     let message: MailMessage
+    let isLoadingBody: Bool
     let onAttachmentTap: (MailAttachment) -> Void
 
     private static let dateFormatter: DateFormatter = {
@@ -35,11 +36,18 @@ struct MailCardView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    if let htmlBody = message.htmlBody {
+                    if isLoadingBody && !message.isContentLoaded {
+                        HStack {
+                            Spacer()
+                            ProgressView("本文を読み込み中…")
+                            Spacer()
+                        }
+                        .padding(.vertical, 40)
+                    } else if let htmlBody = message.htmlBody {
                         HTMLMailBodyView(html: htmlBody)
                             .frame(minHeight: 260)
                     } else {
-                        Text(message.plainBody)
+                        Text(message.plainBody.isEmpty ? "本文はありません。" : message.plainBody)
                             .font(.body)
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -75,4 +83,3 @@ struct MailCardView: View {
         .shadow(color: .black.opacity(0.12), radius: 14, y: 8)
     }
 }
-

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var viewModel: MailDeckViewModel
+    let onDisconnect: () -> Void
 
     var body: some View {
         NavigationStack {
@@ -15,6 +16,12 @@ struct ContentView: View {
                                 Task {
                                     await viewModel.resetReviewedHistory()
                                 }
+                            }
+
+                            Divider()
+
+                            Button("iCloudアカウント設定を削除", role: .destructive) {
+                                onDisconnect()
                             }
                         } label: {
                             Image(systemName: "ellipsis.circle")
@@ -35,7 +42,9 @@ struct ContentView: View {
                 } message: {
                     Text(viewModel.errorMessage ?? "不明なエラー")
                 }
+                .sheet(item: $viewModel.attachmentPreview) { preview in
+                    QuickLookPreview(url: preview.url)
+                }
         }
     }
 }
-

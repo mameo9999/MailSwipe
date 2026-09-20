@@ -21,6 +21,7 @@ struct MailDeckView: View {
                     ZStack {
                         MailCardView(
                             message: message,
+                            isLoadingBody: viewModel.isLoadingCurrentMessage,
                             onAttachmentTap: { attachment in
                                 Task {
                                     await viewModel.openAttachment(attachment)
@@ -167,4 +168,3 @@ struct MailDeckView: View {
         }
     }
 }
-

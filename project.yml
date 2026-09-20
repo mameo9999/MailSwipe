@@ -7,12 +7,20 @@ settings:
   base:
     SWIFT_VERSION: "5.10"
     DEVELOPMENT_TEAM: ""
+packages:
+  MailCore2:
+    url: https://github.com/MailCore/mailcore2
+    branch: master
 targets:
   MailSwipe:
     type: application
     platform: iOS
     sources:
       - path: MailSwipe
+    dependencies:
+      - package: MailCore2
+      - sdk: Security.framework
+      - sdk: QuickLook.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: jp.ryuya.mailswipe
@@ -36,4 +44,3 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: jp.ryuya.mailswipe.tests
-

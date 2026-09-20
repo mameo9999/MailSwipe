@@ -1,7 +1,10 @@
 import Foundation
 
+@MainActor
 protocol MailService {
+    func validateAccount() async throws
     func fetchUnreadMessages(excluding reviewedIDs: Set<String>) async throws -> [MailMessage]
+    func loadContent(messageID: String) async throws -> MailContent
     func markRead(messageID: String) async throws
     func markUnread(messageID: String) async throws
     func localURLForAttachment(messageID: String, attachmentID: String) async throws -> URL
@@ -9,15 +12,22 @@ protocol MailService {
 
 enum MailServiceError: LocalizedError {
     case attachmentUnavailable
+    case invalidMessage
+    case connectionFailed(String)
 
     var errorDescription: String? {
         switch self {
         case .attachmentUnavailable:
             return "画面試作では添付ファイルをまだダウンロードできません。"
+        case .invalidMessage:
+            return "メールの情報を読み取れませんでした。もう一度読み込み直してください。"
+        case .connectionFailed(let detail):
+            return "iCloudメールに接続できませんでした。メールアドレスとアプリ用パスワードを確認してください。\n\n\(detail)"
         }
     }
 }
 
+@MainActor
 final class MockMailService: MailService {
     private(set) var readMessageIDs: Set<String> = []
 
@@ -66,10 +76,24 @@ final class MockMailService: MailService {
         )
     ]
 
+    func validateAccount() async throws {}
+
     func fetchUnreadMessages(excluding reviewedIDs: Set<String>) async throws -> [MailMessage] {
         messages
             .filter { !readMessageIDs.contains($0.id) && !reviewedIDs.contains($0.id) }
             .sorted { $0.receivedAt < $1.receivedAt }
+    }
+
+    func loadContent(messageID: String) async throws -> MailContent {
+        guard let message = messages.first(where: { $0.id == messageID }) else {
+            throw MailServiceError.invalidMessage
+        }
+
+        return MailContent(
+            plainBody: message.plainBody,
+            htmlBody: message.htmlBody,
+            attachments: message.attachments
+        )
     }
 
     func markRead(messageID: String) async throws {
@@ -84,4 +108,3 @@ final class MockMailService: MailService {
         throw MailServiceError.attachmentUnavailable
     }
 }
-
