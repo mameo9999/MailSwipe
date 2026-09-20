@@ -172,7 +172,7 @@ final class IMAPMailService: MailService {
     }
 
     private func searchUnreadUIDs() async throws -> MCOIndexSet {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<MCOIndexSet, Error>) in
             let expression = MCOIMAPSearchExpression.searchUnread()
             let operation = session.searchExpressionOperation(withFolder: folder, expression: expression)
             operation?.start { error, results in
@@ -186,7 +186,7 @@ final class IMAPMailService: MailService {
     }
 
     private func fetchMessages(uids: MCOIndexSet) async throws -> [MCOIMAPMessage] {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[MCOIMAPMessage], Error>) in
             let requestKind: MCOIMAPMessagesRequestKind = [.headers, .structure, .internalDate]
             let operation = session.fetchMessagesOperation(
                 withFolder: folder,
@@ -211,7 +211,7 @@ final class IMAPMailService: MailService {
             throw MailServiceError.invalidMessage
         }
 
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let operation = session.storeFlagsOperation(
                 withFolder: folder,
                 uids: MCOIndexSet(index: UInt64(uid)),
