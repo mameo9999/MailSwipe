@@ -21,13 +21,13 @@ final class IMAPMailService: MailService {
         session.username = credentials.normalizedEmailAddress
         session.password = credentials.appSpecificPassword.trimmingCharacters(in: .whitespacesAndNewlines)
         session.connectionType = .TLS
-        session.checkCertificateEnabled = true
+        session.isCheckCertificateEnabled = true
         session.timeout = 30
         self.session = session
     }
 
     func validateAccount() async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let operation = session.checkAccountOperation()
             operation?.start { error in
                 if let error {
@@ -99,7 +99,7 @@ final class IMAPMailService: MailService {
             throw MailServiceError.invalidMessage
         }
 
-        let html = try await withCheckedThrowingContinuation { continuation in
+        let html = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<String, Error>) in
             let operation = session.htmlRenderingOperation(with: message, folder: folder)
             operation?.start { html, error in
                 if let error {
@@ -140,7 +140,7 @@ final class IMAPMailService: MailService {
             throw MailServiceError.attachmentUnavailable
         }
 
-        let data = try await withCheckedThrowingContinuation { continuation in
+        let data = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, Error>) in
             let operation = session.fetchMessageAttachmentOperation(
                 withFolder: folder,
                 uid: source.uid,
@@ -158,21 +158,21 @@ final class IMAPMailService: MailService {
             }
         }
 
-        let fileName = sourceMessages[messageID]?
+        let matchingPart = sourceMessages[messageID]?
             .attachments()
-            .first(where: { ($0 as? MCOIMAPPart)?.partID == source.partID })?
-            .filename ?? "添付ファイル"
+            .first(where: { ($0 as? MCOIMAPPart)?.partID == source.partID }) as? MCOIMAPPart
+        let fileName = matchingPart?.filename ?? "添付ファイル"
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("MailSwipe", isDirectory: true)
             .appendingPathComponent(messageID.replacingOccurrences(of: ":", with: "-"), isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let url = directory.appendingPathComponent(sanitizedFileName(fileName))
-        try data.write(to: url, options: .atomic)
+        try data.write(to: url, options: Data.WritingOptions.atomic)
         return url
     }
 
     private func searchUnreadUIDs() async throws -> MCOIndexSet {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let expression = MCOIMAPSearchExpression.searchUnread()
             let operation = session.searchExpressionOperation(withFolder: folder, expression: expression)
             operation?.start { error, results in

@@ -27,6 +27,7 @@ targets:
         PRODUCT_NAME: MailSwipe
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1"
+        EXCLUDED_ARCHS[sdk=iphonesimulator*]: arm64
     info:
       path: MailSwipe/Info.plist
       properties:
